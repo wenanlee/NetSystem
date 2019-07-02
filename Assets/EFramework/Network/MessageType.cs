@@ -1,4 +1,4 @@
 ﻿public enum MessageType
 {
-    login
+    Test1,Test2,Test3
 }

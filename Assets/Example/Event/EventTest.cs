@@ -18,7 +18,7 @@ public class EventTest : MonoBehaviour, IEventHandler
     /// </summary>
     private void Start()
     {
-        EventManager.Instance.Registration(HandlerEvent, MessageType.login);
+        EventManager.Instance.Registration(HandlerEvent, MessageType.Test1);
         Send();
     }
     /// <summary>
@@ -26,6 +26,6 @@ public class EventTest : MonoBehaviour, IEventHandler
     /// </summary>
     private void Send()
     {
-        EventData<string>.CreateEvent(MessageType.login, "122216637", "password").Send();
+        EventData<string>.CreateEvent(MessageType.Test1, "122216637", "password").Send();
     }
 }

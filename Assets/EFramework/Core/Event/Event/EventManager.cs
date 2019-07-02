@@ -9,7 +9,6 @@ public class EventManager:Singleton<EventManager>
 
     public void SendEvent(EventBase eventBase)
     {
-        Action<EventBase> action;
         HandlerList[eventBase.eid].Invoke(eventBase);
     }
     /// <summary>

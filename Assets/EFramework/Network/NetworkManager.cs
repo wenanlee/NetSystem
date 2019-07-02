@@ -6,15 +6,22 @@ using UnityEngine;
 public class NetworkManager : Singleton<NetworkManager>, IEventHandler
 {
     //private Queue<Package> packages = new Queue<Package>();
-    private Network.Client client;
-    private Network.Server server;
+    private Network.UDPClient udpClient;
+    private Network.UDPServer udpServer;
+    private Network.TCPClient tcpClient;
+    private Network.TCPServer tcpServer;
     protected override void InitSingleton()
     {
         EventManager.Instance.Registration(HandlerEvent, PackageDir.send, PackageDir.receive);
-        client = new Network.Client();
-        server = new Network.Server();
-        client.Init();
-        server.Init();
+        udpClient = new Network.UDPClient();
+        udpServer = new Network.UDPServer();
+        tcpClient = new Network.TCPClient();
+        tcpServer = new Network.TCPServer();
+        udpServer.Init();
+        tcpServer.Init();
+
+        udpClient.Init("127.0.0.1");
+        tcpClient.Init("127.0.0.1");
     }
 
     /// <summary>
@@ -78,7 +85,7 @@ public class NetworkManager : Singleton<NetworkManager>, IEventHandler
         //Debug.Log(msg.args[0].type);
         foreach (var item in msg.args)
         {
-            Debug.Log((MessageType)item.type);
+            //Debug.Log((MessageType)item.type);
             EventData<Package>.CreateEvent((MessageType)item.type, item).Send();
         }
     }
@@ -87,7 +94,16 @@ public class NetworkManager : Singleton<NetworkManager>, IEventHandler
     {
         foreach (Package item in msg.args)
         {
-            client.Send(item);
+            if (item.size >= 1024)
+            {
+                tcpClient.Send(item);
+                Debug.Log("从TCP发送");
+            }
+            else
+            {
+                udpClient.Send(item);
+                Debug.Log("从UDP发送");
+            }
         }
     }
 }

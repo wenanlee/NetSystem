@@ -2,39 +2,74 @@
 using System.Linq;
 using System.Net;
 using System.Text;
+using UnityEngine;
 
 public class Package
 {
-    public static int messageIndex=0;
-    public IPEndPoint address;
-    public int type;
-    public int index;
-    public byte[] msg;
+    public static int messageIndex = 0;                 //总的消息编号
+    //------------------------------包内容-------------------------------------------------
+    public int size;                                    //包大小
+    public int type;                                    //消息类型
+    public int index;                                   //当前消息编号
+    public byte[] msg;                                  //真正的消息
+    private byte[] fullData;                            //编码过后的信息
+    //小松只有9分了
+
+    /// <summary>
+    /// 初始化包
+    /// </summary>
     public Package()
     {
-        address = new IPEndPoint(IPAddress.Any, 0);
         type = 0;
         index = 0;
         msg = null;
     }
-    public Package(string ip, int port, int type, byte[] msg)
+    /// <summary>
+    /// 初始化包
+    /// </summary>
+    /// <param name="ip">IP地址</param>
+    /// <param name="port">端口号</param>
+    /// <param name="type">消息类型</param>
+    /// <param name="msg">消息体</param>
+    public Package(int type, byte[] msg)
     {
-        Format(ip, port, type, msg);
+        Format(type, msg);
     }
-    public Package(string ip, int port, int type, string msg)
+    /// <summary>
+    /// 初始化包
+    /// </summary>
+    /// <param name="ip">IP地址</param>
+    /// <param name="port">端口号</param>
+    /// <param name="type">消息类型</param>
+    /// <param name="msg">消息体</param>
+    public Package(int type, string msg)
     {
-        Format(ip, port, type, Encoding.UTF8.GetBytes(msg));
+        Format(type, Encoding.UTF8.GetBytes(msg));
     }
-    public Package(string ip, int port, int type, int msg)
+    /// <summary>
+    /// 初始化包
+    /// </summary>
+    /// <param name="ip">IP地址</param>
+    /// <param name="port">端口号</param>
+    /// <param name="type">消息类型</param>
+    /// <param name="msg">消息体</param>
+    public Package(int type, int msg)
     {
-        Format(ip, port, type, BitConverter.GetBytes(msg));
+        Format(type, BitConverter.GetBytes(msg));
     }
-    private void Format(string ip, int port, int type, byte[] msg)
+    /// <summary>
+    /// 格式化消息
+    /// </summary>
+    /// <param name="ip">IP地址</param>
+    /// <param name="port">端口号</param>
+    /// <param name="type">消息类型</param>
+    /// <param name="msg">消息体</param>
+    private void Format(int type, byte[] msg)
     {
-        address = new IPEndPoint(IPAddress.Parse(ip), port);
         this.type = type;
         this.index = messageIndex;
         this.msg = msg;
+        Pack();
     }
     public string GetString()
     {
@@ -48,18 +83,57 @@ public class Package
             return 0;
         return BitConverter.ToInt32(msg, 0);
     }
+    /// <summary>
+    /// 编码
+    /// </summary>
+    /// <returns></returns>
     public byte[] Pack()
     {
-        byte[] msg = BitConverter.GetBytes(type);
-        msg = msg.Concat(BitConverter.GetBytes(index)).Concat(this.msg).ToArray();
-        return msg;
-    }
+        byte[] packHead = new byte[4 * 3];
+        size = msg.Length + packHead.Length;      //3个int（4）型数据 size type index 
+        //包大小
+        packHead[0] = (byte)((size >> 24));
+        packHead[1] = (byte)((size >> 16));
+        packHead[2] = (byte)((size >> 8));
+        packHead[3] = (byte)(size);
+        //包类型
+        packHead[4] = (byte)((type >> 24));
+        packHead[5] = (byte)((type >> 16));
+        packHead[6] = (byte)((type >> 8));
+        packHead[7] = (byte)(type);
+        //包编号
+        packHead[8] = (byte)((index >> 24));
+        packHead[9] = (byte)((index >> 16));
+        packHead[10] = (byte)((index >> 8));
+        packHead[11] = (byte)(index);
 
+        fullData = packHead.Concat(msg).ToArray();
+        return fullData;
+    }
+    public int GetLength()
+    {
+        if (size == 0)
+        {
+            Debug.Log("消息没有打包 Pack()");
+            return 0;
+        }
+        else
+        {
+            return size;
+        }
+    }
+    public Package UnPack()
+    {
+        UnPack(fullData);
+        return this;
+    }
     public Package UnPack(byte[] bytes)
     {
-        type = BitConverter.ToInt32(bytes.Skip(0).Take(4).ToArray(), 0);
-        index = BitConverter.ToInt32(bytes.Skip(4).Take(4).ToArray(), 0);
-        msg = bytes.Skip(8).ToArray();
+        size = (bytes[0] << 24) + (bytes[1] << 16) + (bytes[2] << 8) + bytes[3];
+        type = (bytes[4] << 24) + (bytes[5] << 16) + (bytes[6] << 8) + bytes[7];
+        index = (bytes[8] << 24) + (bytes[9] << 16) + (bytes[10] << 8) + bytes[11];
+        msg = new byte[bytes.Length - 12];
+        Array.Copy(bytes, 12, msg, 0, msg.Length);
         return this;
     }
 }
